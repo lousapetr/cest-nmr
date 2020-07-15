@@ -1,0 +1,108 @@
+#!/bin/bash
+
+# based on
+# Wishart, D. S., Bigam, C. G., Yao, J., Abildgaard, F., Dyson, H. J., Oldfield, E., Markley, J. L., and Sykes, B. D., "1H, 13C and 15N Chemical Shift Referencing in Biomolecular NMR," J. Biomol. NMR 6, 135-140 (1995).
+# 10.1007/BF00211777
+
+help_str='script for easy getting correct carrier frequencies for NMR experiments
+    - based on xcar2 by Lukas Zidek
+    - to be run from within a folder containing acqu*s files
+'
+
+if [ $# -gt 0 ] && [ "$1" == "-h" ] || [ "$1" == "--help" ]
+then
+    printf "%s" "$help_str"
+    exit 0
+fi
+
+echo -n "Temperature / K = "
+read temp
+
+echo -n "pH = "
+read pH
+
+echo -n "Salt concentration / mM = "
+read salt
+echo
+echo
+
+# echo $temp, $pH, $salt
+
+t_coef=-0.0119
+pH_coef=-0.002
+s_coef=-0.009
+
+
+if [ ! -f acqus ]
+then
+    echo "File acqus not found - are you in the correct folder?"
+    exit 1
+fi
+
+if ! grep -q 'NUC1.*1H' acqus
+then
+    echo "The directly measured nucleus was not 1H. Aborting."
+    exit 1
+fi
+
+if grep -iq trosy pulseprogram
+then
+    trosy=1
+fi
+
+
+bfx=$(awk '/BF1/{print $NF}' acqus)  # base frequency of spectrometer
+sfx=$(awk '/SFO1/{print $NF}' acqus) # irradiation (carrier) frequency
+o1x=$(echo "($sfx - $bfx) * 10^6" | bc -l)  # offset in Hz
+# xcar=$(echo "$o1x / $bfx * 1000000" | bc -l)  # original carrier frequency in ppm
+
+water=$(echo "4.766 + $t_coef * ($temp-298.15) + $pH_coef * ($pH-7.0) + $s_coef * $salt / 100.0" | bc -l)  # exact frequency of water (HDO)
+
+
+# numbers taken from xcar2 by Lukas Zidek
+r[1]=1.0            # 1H
+r[2]=0.153506089    # 2H
+r[13]=0.251449530   # 13C
+r[15]=0.101329118   # 15N
+r[31]=0.404808688   # 31P
+base[1]=1.0                     # 1H
+base[2]=0.09693854648385297738  # 2H
+base[13]=0.25145020045668346784 # 13C
+base[15]=0.10132912041080466785 # 15N
+base[31]=0.25563443951048583123 # 31P
+
+
+car_1H=$water
+
+echo "Calculated carrier frequencies:"
+if [ ! -n "$trosy" ]
+then
+    printf "XCAR ( 1H, acqus ): %8.4f\n" "$car_1H"
+else
+    car_1H_trosy=$(echo "$car_1H + 45 / $bfx" | bc -l)
+    printf "XCAR ( 1H, acqus ): %8.4f (TROSY, orig=%.4f)\n" "$car_1H_trosy" "$car_1H"
+fi
+
+
+letters='xXYZAB'
+for f in acqu?s
+do
+    bf=$(awk '/BF1/{print $NF}' "$f")  # base frequency of spectrometer
+    sf=$(awk '/SFO1/{print $NF}' "$f") # irradiation (carrier) frequency
+    car=$(echo "($sf - $bf) / $bf * 10^6" | bc -l)  # original carrier frequency (ppm)
+    nuc=$(awk '/NUC1/{print $NF}' "$f" | tr -d '<>')  # get nucleus symbol (13C, 15N)
+    n=$(echo "$nuc" | sed 's/[A-Z]//')  # nucleon number of isotope
+    i=$(echo "$f" | sed 's/[a-z]//g')   # acqu*s number
+    
+    if [ ! "$nuc" = "off" ]; then
+        correct=$(echo "${base[$n]} / ${r[$n]} * $bfx * (10^6 + $car) * (10^6 + $water) / (10^6 * $bfx + $o1x) - 10^6" | bc -l)
+    fi
+    
+    if [ -n "$trosy" ] && [ "$nuc" == "15N" ]
+    then
+        correct_trosy=$(echo "$correct - 45 / $bf" | bc -l)
+        printf "${letters:i:1}CAR (%3s, $f): %8.4f (TROSY, orig=%.4f)\n" "$nuc" "$correct_trosy" "$correct"
+    else
+        printf "${letters:i:1}CAR (%3s, $f): %8.4f\n" "$nuc" "$correct"
+    fi
+done
