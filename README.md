@@ -1,8 +1,7 @@
 # CEST processing
 by Petr Louša
 
-Prerequisites
-==============
+## Prerequisites
 
 Before you start, make sure you have these programs (packages) installed
 or activated from modules:
@@ -21,8 +20,7 @@ referenced below and needed for the processing of CEST and CPMG data.
 All the scripts are documented below and have comments inside that
 should help with understanding of their function.
 
-Raw data format
----------------
+### Raw data format
 The processing assumes the raw data in Bruker format - the main working directory will be the EXPNO directory containing `ser`, `acqu*s` and `v*list` files. Most of the scripts (unless specified otherwise) should be run from within this directory.
 
 ## Standard CEST processing
@@ -59,5 +57,4 @@ First, we process the raw Bruker data into a set of UCSF spectra.
 
 1.  `./rename_cest.sh` - automatically finds correct chemical shifts corresponding to each spectrum, the first spectrum gets shifted by -5 ppm to make it recognizable, the new files are only soft-links to the original spectra
 
-Calibration of CEST
-===================
+## Calibration of CEST
