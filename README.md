@@ -1,5 +1,10 @@
-# CEST processing
-by Petr Louša
+---
+title: CEST and CPMG processing manual
+author: lousapetr
+date: July 2020
+---
+
+# CEST and CPMG processing
 
 ## Prerequisites
 
