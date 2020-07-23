@@ -62,4 +62,36 @@ First, we process the raw Bruker data into a set of UCSF spectra.
 
 1.  `./rename_cest.sh` - automatically finds correct chemical shifts corresponding to each spectrum, the first spectrum gets shifted by -5 ppm to make it recognizable, the new files are only soft-links to the original spectra
 
-## Calibration of CEST
+### Spectra analysis
+In this section, we will use the process UCSF spectra, check them in Sparky and output lists of peak intensities.
+
+1. Open `Sparky`, from it open the first spectrum in `UCSF/` using `fo` (the one with smallest ppm value). Set the contours (using `ct` or `vC` commands).
+
+2. Load assignment - see section *Assignment loading*
+
+3. Save (`fs`) spectrum and close Sparky (`qt`)
+
+4. `./make_sparky_project.sh` - creates a Sparky project containing all relevant spectra.
+
+5. Run `sparky Sparky/Projects/project.proj`. All spectra, except the first one, are hidden, you can see the list using `PV` command.
+
+6. Run `ha` command from Sparky. This will (silently) create one peak list with intensities for each spectrum. The intensities are taken from the coordinates of peaks in the first spectrum - `ha` works like a pin, piercing through the stack of spectra. The lists will be located in `Sparky/Lists/`
+
+7. Save project (`js`) and close Sparky (`qt`).
+
+##### Noise estimation
+
+1. Start with the project opened in Sparky.
+
+2. In the *first* spectrum, pick as many peaks as reasonable. To do this:
+    1. lower contours to be slightly above Noise
+    2. change cursor to *Find/add peaks* (`F8`)
+    3. "Box" whole spectrum - lots of peaks will be autopicked
+
+3. Run `hn` command, change settings or leave the defaults.
+
+4. Hit `Place peaks for noise determination` to create defined number of random peaks and read their intensities into a set of files in `Sparky/Lists_noise`.
+
+5. Close Sparky without saving (you do not want to save the lots of unassigned random peaks).
+
+6. Run `./calculate_noise.sh` - adds (or updates) additional column into peaklists in `Sparky/Lists`. The values for each spectrum correspond to the standard deviation of intensities of the randomly generated peaks.
