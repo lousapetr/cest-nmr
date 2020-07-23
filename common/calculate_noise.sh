@@ -7,13 +7,12 @@ echo "The result will be saved to ${NOISE_FILE}"
 
 rm -f "$NOISE_FILE"
 
-for f in $(ls -- "${NOISE_PATH}"/*list)
+for f in "${NOISE_PATH}"/*list
 do
-    echo $(basename $f) $(octave << EOF 
+    echo "$(basename $f) $(octave << EOF
         data = load("$f")(:,3);
         printf ("%20f\n", std(data));
 EOF
-    ) >> "${NOISE_FILE}" &
+    )" >> "${NOISE_FILE}" &
 done
 wait  # wait until all background processes finish
-

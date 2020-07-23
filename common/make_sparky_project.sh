@@ -10,13 +10,16 @@ cat > Sparky/Projects/$NAMEPROJ << EOF
 ../Save/$NAME1.save
 EOF
 
-for f in $(ls UCSF/ | grep 'ucsf' | grep -v "^$NAME1\.ucsf" )
+for f in UCSF/*ucsf
 do
-   NAME2=$(echo $f | sed 's/\.ucsf//')
-   sed -e "s/$NAME1/$NAME2/" Sparky/Save/$NAME1.save |
-       sed -e 's/flags/flags hidden/' \
-       > Sparky/Save/$NAME2.save
-   echo "../Save/$NAME2.save" >> Sparky/Projects/$NAMEPROJ
+    if [ "$f" == "$NAME1" ]; then
+        continue
+    fi
+    NAME2=$(echo $f | sed 's/\.ucsf//')
+    sed -e "s/$NAME1/$NAME2/" Sparky/Save/$NAME1.save |
+        sed -e 's/flags/flags hidden/' \
+        > Sparky/Save/$NAME2.save
+    echo "../Save/$NAME2.save" >> Sparky/Projects/ $NAMEPROJ
 done
 
 echo "WARNING! After running Sparky, only first spectrum is visible."
@@ -31,14 +34,13 @@ cat >> Sparky/Projects/$NAMEPROJ << EOF
 <attached data>
 <end attached data>
 <molecule>
-name 
+name
 <attached data>
 <end attached data>
 <condition>
-name 
+name
 <resonances>
 <end resonances>
 <end condition>
 <end molecule>
 EOF
-

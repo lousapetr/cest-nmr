@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 PHASE_x0=-171
 PHASE_y0=0.0
 NSPEC=$(awk '/yN/{print $4}' fid.com)
@@ -29,7 +31,7 @@ nmrPipe -in test.fid        \\
 | nmrPipe  -fn TP                                     \\
 #| nmrPipe  -fn EXT -x1 6.0ppm -xn 11.0ppm -sw \\
 | nmrPipe  -fn TP                                     \\
-   -out FT2_spectra/${i}.ft2 -ov 
+   -out FT2_spectra/${i}.ft2 -ov
 
 sethdr FT2_spectra/${i}.ft2 -ndim 2 -zN 1 -zT 1 -zMODE Real
 pipe2ucsf FT2_spectra/$i.ft2 UCSF/$i.ucsf
