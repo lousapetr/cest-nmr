@@ -60,14 +60,14 @@ First, we process the raw Bruker data into a set of UCSF spectra.
     You can check and possibly correct the phasing by opening the first spectrum using `nmrDraw FT2_spectra/1.ft2`. Remember that the phase in this case is just relative to the original one (if you get now phase correction 1.2, add this number to the previous value that you have already in `process_spectra.sh`).
     In the next step, we rename the spectra.
 
-1.  `./rename_cest.sh` - automatically finds correct chemical shifts corresponding to each spectrum, the first spectrum gets shifted by -5 ppm to make it recognizable, the new files are only soft-links to the original spectra
+1.  `./rename_cest.sh` - automatically finds correct chemical shifts corresponding to each spectrum using `SFO1` from `acqus` and `zCAR` from `fid.com`. The original order of spectra is encoded as last 3 decimal digits of the shift (the first reference spectrum is therefore labeled as `XX.YY001_ppm.ucsf`, where `XX.YY` is the calculated chemical shift.
 
 ### Spectra analysis
 In this section, we will use the process UCSF spectra, check them in Sparky and output lists of peak intensities.
 
-1. Open `Sparky`, from it open the first spectrum in `UCSF/` using `fo` (the one with smallest ppm value). Set the contours (using `ct` or `vC` commands).
+1. Open `Sparky`, from it open the first spectrum in `UCSF/` using `fo` (the one with smallest last decimals - usually `*001_ppm.ucsf`, sometimes `*000_ppm.ucsf`). Set the contours (using `ct` or `vC` commands).
 
-2. Load assignment - see section *Assignment loading*
+2. Load the assignment - see section *Assignment loading*
 
 3. Save (`fs`) spectrum and close Sparky (`qt`)
 
@@ -75,9 +75,9 @@ In this section, we will use the process UCSF spectra, check them in Sparky and 
 
 5. Run `sparky Sparky/Projects/project.proj`. All spectra, except the first one, are hidden, you can see the list using `PV` command.
 
-6. Run `ha` command from Sparky. This will (silently) create one peak list with intensities for each spectrum. The intensities are taken from the coordinates of peaks in the first spectrum - `ha` works like a pin, piercing through the stack of spectra. The lists will be located in `Sparky/Lists/`
+6. Run `ha` command from Sparky. This will create one peak list with peak intensities (heights) for each spectrum. The intensities are taken from the coordinates of peaks in the first spectrum - `ha` works like a pin, piercing through the stack of spectra. The lists will be located in `Sparky/Lists/`
 
-7. Save project (`js`) and close Sparky (`qt`).
+7. Save project (`js`) and continue by *Noise estimation* (or close Sparky (`qt`)).
 
 ##### Noise estimation
 
