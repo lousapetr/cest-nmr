@@ -2,6 +2,7 @@ import os
 import sparky
 import shutil
 import numpy as np
+
 import Tkinter
 import sputil
 import tkutil
@@ -30,16 +31,18 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         noise_handling_dialog = Tkinter.Frame(self.top)
         noise_handling_dialog.pack(side='top', anchor='w')
 
-        num_peaks = tkutil.entry_field(self.top, 'Number of peaks used for noise determination:', '10000', 6)
-        self.num_peaks = num_peaks.variable
-        num_peaks.frame.pack(side='top', anchor='w')
+        # num_peaks = tkutil.entry_field(self.top, 'Number of peaks used for noise determination:', '20000', 6)
+        self.num_peaks = tkutil.entry_row(noise_handling_dialog,
+                                        'Number of peaks used for noise determination:',
+                                        ('', '10000', 6))
+        self.num_peaks.frame.pack(side='top', anchor='w')
 
         self.hz_range_widget = [None, None]
-        protect = tkutil.entry_row(noise_handling_dialog,
-                                   'Ranges [ppm] around peaks, where no peaks for noise determination will be placed:',
-                                   ('w1:', '0.5', 3), ('   w2:', '0.1', 3))
-        (self.protect1, self.protect2) = protect.variables
-        protect.frame.pack(side='top', anchor='w')
+        self.protect = tkutil.entry_row(noise_handling_dialog,
+                                        'Ranges [ppm] around peaks, where no peaks for noise determination will be placed:',
+                                        ('w1:', '0.5', 3), ('   w2:', '0.1', 3))
+        # (self.protect1, self.protect2) = protect.variables
+        self.protect.frame.pack(side='top', anchor='w')
 
         hod = Tkinter.Frame(noise_handling_dialog)
         hod.pack(side='top', anchor='w')
@@ -64,10 +67,56 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         # ----------------------------------------------------------------------------
         # END NOISE HANDLING DIALOG
         # ----------------------------------------------------------------------------
-        pass
+        pass  # for folding purposes only
 
     def clear_handling_output_cb(self):
         self.handling_output.delete(1.0, 'end')
+
+    def _random_peaks(self, N):
+        """
+        Return `N` random peaks uniformly scattered across the `self.spectrum` bounds.
+
+        Returns vertical 2D numpy array - N x 2.
+        """
+        spectrum = self.session.selected_spectrum()
+        return np.random.uniform(low=spectrum.region[0],
+                                 high=spectrum.region[1],
+                                 size=(N, 2)
+                                 )
+
+    def _generate_noise_peaks(self):
+        """
+        Generate `N = self.num_peaks` new peaks that are far (as defined by protect)
+        from all predefined peaks (stored in spectrum.peak_list).
+
+        Returns vertical 2D numpy array - N x 2.
+        """
+        spectrum = self.session.selected_spectrum()
+        peak_list = np.array([p.frequency for p in spectrum.peak_list()])
+        N = int(self.num_peaks.variables[0].get())
+        protect = tuple(float(x.get()) for x in self.protect.variables)
+
+        result = self._random_peaks(N)
+
+        collisions = 1
+        i = 0  # safety guard against infinite loops
+        while collisions > 0 and i < 100:
+            # creates 2D matrix N x len(peak_list) with distances in w1 (resp. w2)
+            dist_matrix_w1 = np.abs(result[:, [0]] - peak_list[:, 0])
+            dist_matrix_w2 = np.abs(result[:, [1]] - peak_list[:, 1])
+            # collision occurs if both distances at given pair are less then protect
+            collision_matrix = (dist_matrix_w1 < protect[0]) & (dist_matrix_w2 < protect[1])
+            collision_array =  np.any(collision_matrix, axis=1)  # find any True in each row
+            assert collision_array.shape[0] == N
+            collisions = np.sum(collision_array)
+            self.handling_output.insert('end', "{}th round; {:d} collisions found.\n".format(i, collisions))
+
+            # generate new peaks at the collision spots
+            result[collision_array] = self._random_peaks(collisions)
+
+            i += 1
+
+        return result
 
     def noise(self):
         start_time = time.time()
