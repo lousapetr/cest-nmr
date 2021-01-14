@@ -109,7 +109,9 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
             collision_array =  np.any(collision_matrix, axis=1)  # find any True in each row
             assert collision_array.shape[0] == N
             collisions = np.sum(collision_array)
-            self.handling_output.insert('end', "{}th round; {:d} collisions found.\n".format(i, collisions))
+
+            # uncomment to see the necessary number of rounds
+            # self.handling_output.insert('end', "{}th round; {:d} collisions found.\n".format(i, collisions))
 
             # generate new peaks at the collision spots
             result[collision_array] = self._random_peaks(collisions)
@@ -118,19 +120,41 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
 
         return result.tolist()
 
+    def _write_peaks(self, noise_path='Lists_noise/'):
+        # first delete the directory, then create again
+        noise_dir = sparky.user_sparky_directory + noise_path
+        try:
+            shutil.rmtree(noise_dir)  # try to remove the directory
+        except OSError:
+            pass  # if does not exist before, do nothing
+        os.makedirs(noise_dir)
+
+        np.savetxt(fname=noise_dir+'noise_coords.list',
+                   X=np.array(self.noise_peaklist),
+                   fmt='%10.3f')
+
+        spectra_names = [s.name for s in self.session.project.spectrum_list()]
+        np.savetxt(fname=noise_dir+'noise_heights_full.csv',
+                   X=self.noise_heights,
+                   fmt='%20.3f',
+                   header=''.join('{:>20s}'.format(n) for n in spectra_names))
+
+        self.handling_output.insert('end', 'All peak coordinates written in file {}.\n'.format(noise_path+'noise_coords.csv'))
+        self.handling_output.insert('end', 'All peak heights written in file {}.\n'.format(noise_path+'noise_heights_full.csv'))
+
     def noise(self):
         spectrum_list = self.session.project.spectrum_list()
-        spectra_names = [s.name for s in spectrum_list]
 
         start_time = time.time()
-        noise_peaklist = self._generate_noise_peaks()
+        self.noise_peaklist = self._generate_noise_peaks()
+        noise_peaklist = self.noise_peaklist
 
         # read peak heights
         # matrix "noise peak number" (rows) x "spectrum" (columns)
-        noise_heights = np.zeros(shape=(len(noise_peaklist), len(spectrum_list)))
+        self.noise_heights = np.zeros(shape=(len(noise_peaklist), len(spectrum_list)))
         for i_s, s in enumerate(spectrum_list):
             for i_p, p in enumerate(noise_peaklist):
-                noise_heights[i_p, i_s] = s.data_height(p)
+                self.noise_heights[i_p, i_s] = s.data_height(p)
 
         self.handling_output.insert('end', "{:d} random peak positions created.\n".format(len(noise_peaklist)))
         picking_time = time.time()
@@ -146,24 +170,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         self.handling_output.insert('end', 'The Peaks Showing took {:.3f} seconds\n'.format(showing_time - picking_time))
         ########################################################################################################
 
-        ##### PEAK WRITING
-        # first delete the directory, then create again
-        noise_dir = sparky.user_sparky_directory + "/Lists_noise/"
-        try:
-            shutil.rmtree(noise_dir)  # try to remove the directory
-        except OSError:
-            pass  # if does not exist before, do nothing
-        os.makedirs(noise_dir)
-
-        np.savetxt(fname=noise_dir+'noise_coords.list',
-                   X=np.array(noise_peaklist),
-                   fmt='%10.3f')
-        np.savetxt(fname=noise_dir+'noise_heights_full.csv',
-                   X=noise_heights,
-                   fmt='%20.3f',
-                   header=''.join('{:>20s}'.format(n) for n in spectra_names))
-        self.handling_output.insert('end', 'All peak coordinates written in file {}.\n'.format(noise_dir+'noise_coords.csv'))
-        self.handling_output.insert('end', 'All peak heights written in file {}.\n'.format(noise_dir+'noise_heights_full.csv'))
+        self._write_peaks(noise_path='Lists_noise/')
         writing_time = time.time()
         self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - showing_time))
         self.handling_output.insert('end', 'Done\n')
