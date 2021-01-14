@@ -7,8 +7,8 @@ def initialize_session(session):
   session.add_command("wp", "Write precisely", wp_command)
 
   def ha_command(s = session):
-    import all_peak_height
-    all_peak_height.all_peak_height(s)
+    import all_peak_height_pl
+    all_peak_height_pl.all_peak_height(s)
 
   session.add_command("ha", "Height all peaks", ha_command)
 
@@ -18,15 +18,9 @@ def initialize_session(session):
 
   session.add_command("ho", "Height own peaks", ho_command)
 
-#   def hn_command(s = session):
-#     import noise_height2
-#     noise_height2.show_noise(s)
-# 
-#   session.add_command("hn", "Height of noise", hn_command)
-
   def hn_command(s = session):
-    import noise_height3
-    noise_height3.show_noise(s)
+    import noise_height4
+    noise_height4.show_noise(s)
 
   session.add_command("hn", "Height of noise", hn_command)
 
@@ -47,4 +41,3 @@ def initialize_session(session):
     peak_center_all.peak_center_all(s)
 
   session.add_command("ca", "Center all", ca_command)
-
