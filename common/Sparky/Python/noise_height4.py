@@ -2,6 +2,7 @@ import os
 import sparky
 import shutil
 import numpy as np
+import matplotlib.pyplot as plt
 
 import Tkinter
 import sputil
@@ -86,7 +87,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
                                  size=(N, 2)
                                  )
 
-    def _generate_noise_peaks(self):
+    def _generate_noise_peaks(self, N):
         """
         Generate `N = self.num_peaks` new peaks that are far (as defined by protect)
         from all predefined peaks (stored in spectrum.peak_list).
@@ -95,7 +96,6 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         """
         spectrum = self.session.selected_spectrum()
         peak_list = np.array([p.frequency for p in spectrum.peak_list()])
-        N = int(self.num_peaks.variables[0].get())
         protect = tuple(float(x.get()) for x in self.protect.variables)
 
         result = self._random_peaks(N)
@@ -144,8 +144,8 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         # self.handling_output.insert('end', 'All peak heights written in file {}.\n'.format(self.noise_path+'noise_heights_full.csv'))
 
         # uncomment for full path writing
-        self.handling_output.insert('end', 'All peak coordinates written in file {}.\n'.format(noise_dir+'noise_coords.csv'))
-        self.handling_output.insert('end', 'All peak heights written in file {}.\n'.format(noise_dir+'noise_heights_full.csv'))
+        self.handling_output.insert('end', 'All peak coordinates written in file {}\n'.format(noise_dir+'noise_coords.csv'))
+        self.handling_output.insert('end', 'All peak heights written in file {}\n'.format(noise_dir+'noise_heights_full.csv'))
 
     def _write_result(self, filename, data, header=None):
         """
@@ -161,7 +161,9 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
             for i in range(len(data)):
                 f.write('{:<20} {:20.3f}\n'.format(self.spectra_names[i], data[i]))
 
-        self.handling_output.insert('end', 'Noise levels written in {}.\n'.format(full_path))
+        self.handling_output.insert('end', 'Noise levels written in {}\n'.format(self.noise_path + filename))
+        # self.handling_output.insert('end', 'Noise levels written in {}.\n'.format(full_path))
+        pass
 
     def _naive_std(self):
         """
@@ -172,10 +174,39 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         # axis=0 calculates by column
         return self.noise_heights.std(axis=0)
 
+    def _iterative_std(self, max_sigma=6):
+        """
+        Iteratively remove outliers beyond `max_sigma` * std.
+
+        Return numpy array `len(spectrum_list)` x 1
+        """
+        noise_filtered = self.noise_heights.copy()
+
+        imgpath = sparky.user_sparky_directory + '/' + self.noise_path
+        plt.figure(1)
+        plt.boxplot(noise_filtered[:,:10])
+        plt.savefig(imgpath+'orig.png')
+        while True:
+            stddev = np.std(noise_filtered, axis=0)
+            mask = (noise_filtered > max_sigma * stddev) | (noise_filtered < - max_sigma * stddev)
+            noise_filtered[mask] = np.nan
+            noise_filtered = np.ma.masked_invalid(noise_filtered)
+            self.handling_output.insert('end', '    {} values filtered out'.format(mask.sum()))
+            self.handling_output.insert('end', ', {} left.'.format(noise_filtered.count()))
+            self.handling_output.insert('end', ' Current average STD = {}\n'.format(noise_filtered.std()))
+            if not np.any(mask):  # no values were filtered
+                break
+        noise_result = self.noise_heights.copy()
+        noise_result[noise_filtered.mask] = np.nan
+        plt.figure(2)
+        plt.boxplot(noise_result[:,:10])
+        plt.savefig(imgpath+'filtered.png')
+        return stddev
 
     def noise(self):
         start_time = time.time()
-        self.noise_peaklist = self._generate_noise_peaks()
+        self.N = int(self.num_peaks.variables[0].get())
+        self.noise_peaklist = self._generate_noise_peaks(self.N)
         noise_peaklist = self.noise_peaklist
 
         # read peak heights
@@ -194,17 +225,34 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         #    BUT RE-RUN IS NOT POSSIBLE, BECAUSE NEXT TIME THESE PEAKS WILL CONSIDERED AS REAL ONE            #
         ########################################################################################################
         for peak in noise_peaklist:
-            self.session.selected_spectrum().place_peak(peak)
+            # self.session.selected_spectrum().place_peak(peak)
+            pass
         showing_time = time.time()
         self.handling_output.insert('end', 'The Peaks Showing took {:.3f} seconds\n'.format(showing_time - picking_time))
         ########################################################################################################
 
-        # self._write_peaks()
+        self._write_peaks()
 
+        naive = self._naive_std()
         self._write_result(filename='naive_std.out',
-                           data=self._naive_std(),
+                           data=naive,
                            header='# naive std test'
                            )
+        iterative = self._iterative_std()
+        self._write_result(filename='iterative_std.out',
+                           data=iterative,
+                           header='# naive std test'
+                           )
+
+        plt.figure(10)
+        spect_no = 0
+        plt.hist(self.noise_heights[:,spect_no], bins=1000, normed=True, cumulative=True)
+        plt.axvline(x=2*naive[spect_no], color='red')
+        plt.axvline(x=-2*naive[spect_no], color='red')
+        plt.axvline(x=2*iterative[spect_no], color='green')
+        plt.axvline(x=-2*iterative[spect_no], color='green')
+        plt.xlim([-6*naive[spect_no], 6*naive[spect_no]])
+        plt.savefig(sparky.user_sparky_directory+'/'+self.noise_path+'hist.png')
 
         writing_time = time.time()
         self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - showing_time))
