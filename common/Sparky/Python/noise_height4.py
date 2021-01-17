@@ -195,16 +195,18 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         # axis=0 calculates by column
         return self.noise_heights.std(axis=0)
 
-    def _iterative_std(self, max_sigma=6, plot=False, verbose=False):
+    def _iterative_std(self, max_sigma=6, plot=False, verbose=0):
         """
         Iteratively remove outliers beyond `max_sigma` * std.
 
         If plot=True, create two boxplots - noise heights before and after filtering.
-        If verbose=True, print out the intermediate steps.
+        If verbose > 0, print out the intermediate steps.
 
         Return numpy array `len(spectrum_list)` x 1
         """
-        self.handling_output.insert('end', 'Iterative sigma calculation starts.\n')
+        if verbose >= 1:
+            self.handling_output.insert('end', 'Iterative sigma calculation starts.\n')
+
         noise_filtered = self.noise_heights.copy()
 
         if plot is True:
@@ -223,7 +225,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
             noise_filtered = np.ma.masked_invalid(noise_filtered)
             num_rounds += 1
 
-            if verbose is True:
+            if verbose > 1:
                 self.handling_output.insert('end', '    {} values filtered out'.format(mask.sum()))
                 self.handling_output.insert('end', ', {} left.'.format(noise_filtered.count()))
                 self.handling_output.insert('end', ' Current overall STD = {}\n'.format(noise_filtered.std()))
@@ -237,10 +239,11 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         final_stddev_percent = 100.0 * final_stddev / orig_stddev
         num_filtered = noise_filtered.mask.sum()
         percent_filtered = 100.0 * num_filtered / self.noise_heights.size
-        self.handling_output.insert('end',
-            '    After {} rounds, {} values ({:.3f} %) was filtered out\n'.format(num_rounds, num_filtered, percent_filtered))
-        self.handling_output.insert('end',
-            '    Sigma dropped from {:.0f} to {:.0f} ({:.2f} %)\n'.format(orig_stddev, final_stddev, final_stddev_percent))
+        if verbose >= 1:
+            self.handling_output.insert('end',
+                '    After {} rounds, {} values ({:.3f} %) was filtered out\n'.format(num_rounds, num_filtered, percent_filtered))
+            self.handling_output.insert('end',
+                '    Sigma dropped from {:.0f} to {:.0f} ({:.2f} %)\n'.format(orig_stddev, final_stddev, final_stddev_percent))
 
         if plot is True:
             plt.figure(2)
@@ -306,7 +309,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
 
         self._write_peaks()
 
-        tttttif self.method.get() == 1:
+        if self.method.get() == 1:
             naive = self._naive_std()
             self._write_result(filename='naive_std.out',
                                data=naive,
