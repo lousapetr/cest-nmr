@@ -196,19 +196,24 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         # axis=0 calculates by column
         return self.noise_heights.std(axis=0)
 
-    def _iterative_std(self, max_sigma=6):
+    def _iterative_std(self, max_sigma=6, plot=False, verbose=False):
         """
         Iteratively remove outliers beyond `max_sigma` * std.
+
+        If plot=True, create two boxplots - noise heights before and after filtering.
+        If verbose=True, print out the intermediate steps.
 
         Return numpy array `len(spectrum_list)` x 1
         """
         self.handling_output.insert('end', 'Iterative sigma calculation starts.\n')
         noise_filtered = self.noise_heights.copy()
 
-        imgpath = sparky.user_sparky_directory + '/' + self.noise_path
-        plt.figure(1)
-        plt.boxplot(noise_filtered[:,:10])
-        plt.savefig(imgpath+'orig.png')
+        if plot is True:
+            imgpath = sparky.user_sparky_directory + '/' + self.noise_path
+            plt.figure(1)
+            plt.boxplot(noise_filtered[:,:10])
+            plt.savefig(imgpath+'orig.png')
+            plt.clf()
 
         num_rounds = 0
         orig_stddev = np.std(noise_filtered)
@@ -217,10 +222,12 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
             mask = (noise_filtered > max_sigma * stddev) | (noise_filtered < - max_sigma * stddev)
             noise_filtered[mask] = np.nan
             noise_filtered = np.ma.masked_invalid(noise_filtered)
-            # self.handling_output.insert('end', '    {} values filtered out'.format(mask.sum()))
-            # self.handling_output.insert('end', ', {} left.'.format(noise_filtered.count()))
-            # self.handling_output.insert('end', ' Current average STD = {}\n'.format(noise_filtered.std()))
             num_rounds += 1
+
+            if verbose is True:
+                self.handling_output.insert('end', '    {} values filtered out'.format(mask.sum()))
+                self.handling_output.insert('end', ', {} left.'.format(noise_filtered.count()))
+                self.handling_output.insert('end', ' Current overall STD = {}\n'.format(noise_filtered.std()))
             if not np.any(mask):  # no values were filtered
                 break
 
@@ -236,10 +243,11 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         self.handling_output.insert('end',
             '    Sigma dropped from {:.0f} to {:.0f} ({:.2f} %)\n'.format(orig_stddev, final_stddev, final_stddev_percent))
 
-        plt.figure(2)
-        plt.boxplot(noise_result[:,:10])
-        plt.savefig(imgpath+'filtered.png')
-        plt.clf()
+        if plot is True:
+            plt.figure(2)
+            plt.boxplot(noise_result[:,:10])
+            plt.savefig(imgpath+'filtered.png')
+            plt.clf()
 
         return np.std(noise_filtered, axis=0)
 
