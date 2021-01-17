@@ -90,8 +90,13 @@ In this section, we will use the process UCSF spectra, check them in Sparky and 
 
 3. Run `hn` command, change settings or leave the defaults.
 
-4. Hit `Place peaks for noise determination` to create defined number of random peaks and read their intensities into a set of files in `Sparky/Lists_noise`.
+4. Hit `Determine noise` to create a defined number of random peaks, write their coordinates and intensities to files in `Sparky/Lists_noise`, and calculate the overall noise level for each spectrum based on given method.
+    - 'Naive' - Standard deviation of heights in each spectra, no fanciness, original method.
+    - 'Iterative' - Iteratively calculate standard deviation and filter out peaks with amplitude larger than 6*sigma (such a height has probability around 1e-9 to exist under Gauss distribution).
+    - 'Median abs.dev.' - _Median absolute deviation_, [wiki](https://en.wikipedia.org/wiki/Median_absolute_deviation) Calculate median of absolute values of deviations from median of original data. `MAD = median(abs(x - median(x)))`
 
-5. Close Sparky without saving (you do not want to save the lots of unassigned random peaks).
+5. If you want to see the peak locations, hit `Show peaks`. Warning: After this, the peaks get real, rerun of the noise determination is not possible (new peaks will try to avoid all the previous noise peaks, leaving no space to put them).
 
-6. Run `./calculate_noise.sh` - adds (or updates) additional column into peaklists in `Sparky/Lists`. The values for each spectrum correspond to the standard deviation of intensities of the randomly generated peaks.
+6. Close Sparky without saving (you do not want to save the lots of unassigned random peaks).
+
+7. Run `./calculate_noise.sh` - adds (or updates) additional column into peaklists in `Sparky/Lists`. The values for each spectrum correspond to the standard deviation of intensities of the randomly generated peaks.
