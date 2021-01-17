@@ -62,8 +62,8 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         spectra_assign_widget.pack(side='top', anchor='w')
 
         pobr = tkutil.button_row(noise_handling_dialog,
-                                 ('Place peaks for noise determination', self.noise),
-                                 ('Clear handling output', self.clear_handling_output_cb),
+                                 ('Determine noise', self.noise),
+                                 ('Show peaks', self.show_peaks),
                                  ('Quit', self.close_cb))
         pobr.frame.pack()
 
@@ -74,6 +74,16 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
 
     def clear_handling_output_cb(self):
         self.handling_output.delete(1.0, 'end')
+
+    def show_peaks(self):
+        """
+        Puts the noise peaks to spectrum.
+        Warning: creates real peaks. Next noise generating will try to avoid them.
+        """
+        for peak in self.noise_peaklist:
+            self.session.selected_spectrum().place_peak(peak)
+        self.handling_output.insert('end', '{} peaks were shown.\n'.format(len(self.noise_peaklist)))
+        self.handling_output.insert('end', 'Warning: The peaks are real now, do NOT rerun the noise determination!\n')
 
     def _random_peaks(self, N):
         """
@@ -204,7 +214,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         return stddev
 
     def noise(self):
-        start_time = time.time()
+        # start_time = time.time()
         self.N = int(self.num_peaks.variables[0].get())
         self.noise_peaklist = self._generate_noise_peaks(self.N)
         noise_peaklist = self.noise_peaklist
@@ -217,19 +227,8 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
                 self.noise_heights[i_p, i_s] = s.data_height(p)
 
         self.handling_output.insert('end', "{:d} random peak positions created.\n".format(len(noise_peaklist)))
-        picking_time = time.time()
-        self.handling_output.insert('end', 'The Random Picking took {:.3f} seconds\n'.format(picking_time - start_time))
-
-        ########################################################################################################
-        #    THIS IS USED FOR THE CASE YOU WANT TO VIEW, WHERE THE PEAKS WERE PLACED                           #
-        #    BUT RE-RUN IS NOT POSSIBLE, BECAUSE NEXT TIME THESE PEAKS WILL CONSIDERED AS REAL ONE            #
-        ########################################################################################################
-        for peak in noise_peaklist:
-            # self.session.selected_spectrum().place_peak(peak)
-            pass
-        showing_time = time.time()
-        self.handling_output.insert('end', 'The Peaks Showing took {:.3f} seconds\n'.format(showing_time - picking_time))
-        ########################################################################################################
+        # picking_time = time.time()
+        # self.handling_output.insert('end', 'The Random Picking took {:.3f} seconds\n'.format(picking_time - start_time))
 
         self._write_peaks()
 
@@ -248,21 +247,17 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         spect_no = 0
         mean = self.noise_heights[:,spect_no].mean()
         x_lim = 6*naive[spect_no]
-        x_scale = np.linspace(-x_lim, x_lim, num=100)
+        x_scale = np.linspace(-x_lim, x_lim, num=1000)
         gauss = lambda sigma: np.exp(-0.5* (x_scale-mean)**2 / sigma**2) / np.sqrt(2*np.pi * sigma**2)
 
         plt.hist(self.noise_heights[:,spect_no], bins=1000, normed=True, cumulative=False, alpha=0.5)
         plt.plot(x_scale, gauss(naive[spect_no]), c='red', lw=3)
         plt.plot(x_scale, gauss(iterative[spect_no]), c='green', lw=3)
-        # plt.axvline(x=2*naive[spect_no], color='red')
-        # plt.axvline(x=-2*naive[spect_no], color='red')
-        # plt.axvline(x=2*iterative[spect_no], color='green')
-        # plt.axvline(x=-2*iterative[spect_no], color='green')
         plt.xlim([-x_lim, x_lim])
         plt.ylim([0, 3e-7])
         plt.savefig(sparky.user_sparky_directory+'/'+self.noise_path+'hist.png')
 
-        writing_time = time.time()
-        self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - showing_time))
+        # writing_time = time.time()
+        # self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - picking_time))
         self.handling_output.insert('end', 'Done\n')
         return
