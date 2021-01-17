@@ -177,6 +177,8 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         Write resulting noise - one number for each spectrum.
         """
         full_path = os.path.join(sparky.user_sparky_directory, self.noise_path, filename)
+        general_output = 'noise.dat'
+        general_output_full = os.path.join(sparky.user_sparky_directory, self.noise_path, general_output)
         with open(full_path, 'w') as f:
             if header:
                 if header[-1] != '\n':
@@ -186,8 +188,12 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
             for i in range(len(data)):
                 f.write('{:<20} {:20.3f}\n'.format(self.spectra_names[i], data[i]))
 
-        self.handling_output.insert('end', 'Noise levels written in {}\n'.format(os.path.join(self.noise_path, filename)))
+        shutil.copyfile(src=full_path, dst=general_output_full)
+
+        self.handling_output.insert('end', 'Noise levels written in {}, '.format(os.path.join(self.noise_path, filename)))
+        self.handling_output.insert('end', 'copied to {}\n'.format(os.path.join(self.noise_path, general_output)))
         # self.handling_output.insert('end', 'Noise levels written in {}.\n'.format(full_path))
+        # self.handling_output.insert('end', 'copied to {}\n'.format(general_output_full))
         pass
 
     def _naive_std(self):
