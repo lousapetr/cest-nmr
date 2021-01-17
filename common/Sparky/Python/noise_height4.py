@@ -307,21 +307,24 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
 
         self._write_peaks()
 
-        naive = self._naive_std()
-        self._write_result(filename='naive_std.out',
-                           data=naive,
-                           header='# naive sigma'
-                           )
-        iterative = self._iterative_std()
-        self._write_result(filename='iterative_std.out',
-                           data=iterative,
-                           header='# iterative sigma'
-                           )
-        mad = self._median_absolute_deviation()
-        self._write_result(filename='mad.out',
-                           data=mad,
-                           header='# median absolute deviation'
-                           )
+        if self.method.get() == 1:
+            naive = self._naive_std()
+            self._write_result(filename='naive_std.out',
+                               data=naive,
+                               header='# naive sigma'
+                               )
+        elif self.method.get() == 2:
+            iterative = self._iterative_std()
+            self._write_result(filename='iterative_std.out',
+                               data=iterative,
+                               header='# iterative sigma'
+                               )
+        elif self.method.get() == 3:
+            mad = self._median_absolute_deviation()
+            self._write_result(filename='mad.out',
+                               data=mad,
+                               header='# median absolute deviation'
+                               )
 
         histogram_wanted = False
         if histogram_wanted is True:
