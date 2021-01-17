@@ -50,7 +50,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         self.protect.frame.pack(side='top', anchor='w')
 
         self.method = Tkinter.IntVar()
-        self.method.set(1)
+        self.method.set(3)
         method_frame = Tkinter.Frame(noise_handling_dialog)
         Tkinter.Label(method_frame, text='Select method for noise calculation:').pack(side='left')
         Tkinter.Radiobutton(method_frame, text='Naive', variable=self.method, value=1).pack(side='left')
