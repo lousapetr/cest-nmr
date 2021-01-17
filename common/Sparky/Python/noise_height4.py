@@ -2,6 +2,8 @@ import os
 import sparky
 import shutil
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import Tkinter
@@ -228,9 +230,20 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         plt.figure(2)
         plt.boxplot(noise_result[:,:10])
         plt.savefig(imgpath+'filtered.png')
-        plt.close()
+        plt.clf()
 
         return np.std(noise_filtered, axis=0)
+
+    def _median_absolute_deviation(self):
+        """
+        Calculate Median Average Deviation for noise in each spectra.
+        https://en.wikipedia.org/wiki/Median_absolute_deviation
+
+        Return numpy array `len(spectrum_list)` x 1
+        """
+        noise_median = np.median(self.noise_heights, axis=0)
+        deviations = np.abs(self.noise_heights - noise_median)
+        return np.median(deviations, axis=0)
 
     def noise(self):
         # start_time = time.time()
@@ -261,21 +274,28 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
                            data=iterative,
                            header='# iterative sigma'
                            )
+        mad = self._median_absolute_deviation()
+        self._write_result(filename='mad.out',
+                           data=mad,
+                           header='# median absolute deviation'
+                           )
 
         plt.figure(10)
         spect_no = 0
         mean = self.noise_heights[:,spect_no].mean()
-        x_lim = 6*naive[spect_no]
+        x_lim = 3*naive[spect_no]
         x_scale = np.linspace(-x_lim, x_lim, num=1000)
         gauss = lambda sigma: np.exp(-0.5* (x_scale-mean)**2 / sigma**2) / np.sqrt(2*np.pi * sigma**2)
 
-        plt.hist(self.noise_heights[:,spect_no], bins=1000, normed=True, cumulative=False, alpha=0.5)
-        plt.plot(x_scale, gauss(naive[spect_no]), c='red', lw=3)
-        plt.plot(x_scale, gauss(iterative[spect_no]), c='green', lw=3)
+        plt.hist(self.noise_heights[:,spect_no], bins=1000, normed=True, cumulative=False, alpha=0.5, color='gray')
+        plt.plot(x_scale, gauss(naive[spect_no]), '--', c='red', lw=3, label='naive')
+        plt.plot(x_scale, gauss(iterative[spect_no]), '--', c='green', lw=3, label='iterative')
+        plt.plot(x_scale, gauss(mad[spect_no]), '--', c='blue', lw=3, label='median')
         plt.xlim([-x_lim, x_lim])
         plt.ylim([0, 3e-7])
+        plt.legend()
         plt.savefig(sparky.user_sparky_directory+'/'+self.noise_path+'hist.png')
-        plt.close()
+        plt.clf()
 
         # writing_time = time.time()
         # self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - picking_time))
