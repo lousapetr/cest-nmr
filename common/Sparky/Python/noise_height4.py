@@ -144,13 +144,10 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         return result.tolist()
 
     def _write_peaks(self):
-        # first delete the directory, then create again
         noise_dir = sparky.user_sparky_directory + '/' + self.noise_path
-        try:
-            shutil.rmtree(noise_dir)  # try to remove the directory
-        except OSError:
-            pass  # if does not exist before, do nothing
-        os.makedirs(noise_dir)
+
+        if not os.path.exists(noise_dir):
+            os.makedirs(noise_dir)
 
         np.savetxt(fname=noise_dir+'noise_coords.list',
                    X=np.array(self.noise_peaklist),
@@ -307,7 +304,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
 
         self._write_peaks()
 
-        if self.method.get() == 1:
+        tttttif self.method.get() == 1:
             naive = self._naive_std()
             self._write_result(filename='naive_std.out',
                                data=naive,
