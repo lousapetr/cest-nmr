@@ -49,6 +49,15 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         # (self.protect1, self.protect2) = protect.variables
         self.protect.frame.pack(side='top', anchor='w')
 
+        self.method = Tkinter.IntVar()
+        self.method.set(1)
+        method_frame = Tkinter.Frame(noise_handling_dialog)
+        Tkinter.Label(method_frame, text='Select method for noise calculation:').pack(side='left')
+        Tkinter.Radiobutton(method_frame, text='Naive', variable=self.method, value=1).pack(side='left')
+        Tkinter.Radiobutton(method_frame, text='Iterative', variable=self.method, value=2).pack(side='left')
+        Tkinter.Radiobutton(method_frame, text='Median abs.dev.', variable=self.method, value=3).pack(side='left')
+        method_frame.pack(side='top', anchor='w')
+
         hod = Tkinter.Frame(noise_handling_dialog)
         hod.pack(side='top', anchor='w')
 
