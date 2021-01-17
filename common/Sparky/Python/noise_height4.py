@@ -75,13 +75,17 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         pobr = tkutil.button_row(noise_handling_dialog,
                                  ('Determine noise', self.noise),
                                  ('Show peaks', self.show_peaks),
-                                 ('Quit', self.close_cb))
+                                 ('Quit', self.clear_and_close))
         pobr.frame.pack()
 
         # ----------------------------------------------------------------------------
         # END NOISE HANDLING DIALOG
         # ----------------------------------------------------------------------------
         pass  # for folding purposes only
+
+    def clear_and_close(self):
+        self.clear_handling_output_cb()
+        self.close_cb()
 
     def clear_handling_output_cb(self):
         self.handling_output.delete(1.0, 'end')
@@ -123,7 +127,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
 
         collisions = 1
         i = 0  # safety guard against infinite loops
-        while collisions > 0 and i < 100:
+        while collisions > 0 and i < 100 and len(peak_list) > 0:
             # creates 2D matrix N x len(peak_list) with distances in w1 (resp. w2)
             dist_matrix_w1 = np.abs(result[:, [0]] - peak_list[:, 0])
             dist_matrix_w2 = np.abs(result[:, [1]] - peak_list[:, 1])
@@ -334,4 +338,4 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
 
         # writing_time = time.time()
         # self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - picking_time))
-        self.handling_output.insert('end', 'Done\n')
+        self.handling_output.insert('end', 'Done\n\n')
