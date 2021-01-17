@@ -236,24 +236,33 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         naive = self._naive_std()
         self._write_result(filename='naive_std.out',
                            data=naive,
-                           header='# naive std test'
+                           header='# naive sigma'
                            )
         iterative = self._iterative_std()
         self._write_result(filename='iterative_std.out',
                            data=iterative,
-                           header='# naive std test'
+                           header='# iterative sigma'
                            )
 
         plt.figure(10)
         spect_no = 0
-        plt.hist(self.noise_heights[:,spect_no], bins=1000, normed=True, cumulative=True)
-        plt.axvline(x=2*naive[spect_no], color='red')
-        plt.axvline(x=-2*naive[spect_no], color='red')
-        plt.axvline(x=2*iterative[spect_no], color='green')
-        plt.axvline(x=-2*iterative[spect_no], color='green')
-        plt.xlim([-6*naive[spect_no], 6*naive[spect_no]])
+        mean = self.noise_heights[:,spect_no].mean()
+        x_lim = 6*naive[spect_no]
+        x_scale = np.linspace(-x_lim, x_lim, num=100)
+        gauss = lambda sigma: np.exp(-0.5* (x_scale-mean)**2 / sigma**2) / np.sqrt(2*np.pi * sigma**2)
+
+        plt.hist(self.noise_heights[:,spect_no], bins=1000, normed=True, cumulative=False, alpha=0.5)
+        plt.plot(x_scale, gauss(naive[spect_no]), c='red', lw=3)
+        plt.plot(x_scale, gauss(iterative[spect_no]), c='green', lw=3)
+        # plt.axvline(x=2*naive[spect_no], color='red')
+        # plt.axvline(x=-2*naive[spect_no], color='red')
+        # plt.axvline(x=2*iterative[spect_no], color='green')
+        # plt.axvline(x=-2*iterative[spect_no], color='green')
+        plt.xlim([-x_lim, x_lim])
+        plt.ylim([0, 3e-7])
         plt.savefig(sparky.user_sparky_directory+'/'+self.noise_path+'hist.png')
 
         writing_time = time.time()
         self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - showing_time))
         self.handling_output.insert('end', 'Done\n')
+        return
