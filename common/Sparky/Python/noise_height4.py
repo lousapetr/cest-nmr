@@ -144,33 +144,35 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         return result.tolist()
 
     def _write_peaks(self):
-        noise_dir = sparky.user_sparky_directory + '/' + self.noise_path
+        noise_dir = os.path.join(sparky.user_sparky_directory, self.noise_path)
 
         if not os.path.exists(noise_dir):
             os.makedirs(noise_dir)
 
-        np.savetxt(fname=noise_dir+'noise_coords.list',
+        coords_file = 'noise_coords.list'
+        heights_file = 'noise_heights_full.csv'
+        np.savetxt(fname=os.path.join(noise_dir, coords_file),
                    X=np.array(self.noise_peaklist),
                    fmt='%10.3f')
 
-        np.savetxt(fname=noise_dir+'noise_heights_full.csv',
+        np.savetxt(fname=os.path.join(noise_dir, heights_file),
                    X=self.noise_heights,
                    fmt='%20.3f',
                    header=''.join('{:>20s}'.format(n) for n in self.spectra_names))
 
-        self.handling_output.insert('end', 'All peak coordinates written in file {}.\n'.format(self.noise_path+'noise_coords.csv'))
-        self.handling_output.insert('end', 'All peak heights written in file {}.\n'.format(self.noise_path+'noise_heights_full.csv'))
+        self.handling_output.insert('end', 'All peak coordinates written in file {}.\n'.format(os.path.join(self.noise_path, coords_file)))
+        self.handling_output.insert('end', 'All peak heights written in file {}.\n'.format(os.path.join(self.noise_path, heights_file)))
 
         # uncomment for full path writing
-        # self.handling_output.insert('end', 'All peak coordinates written in file {}\n'.format(noise_dir+'noise_coords.csv'))
-        # self.handling_output.insert('end', 'All peak heights written in file {}\n'.format(noise_dir+'noise_heights_full.csv'))
+        # self.handling_output.insert('end', 'All peak coordinates written in file {}\n'.format(os.path.join(noise_dir, coords_file)))
+        # self.handling_output.insert('end', 'All peak heights written in file {}\n'.format(os.path.join(noise_dir, heights_file)))
         pass
 
     def _write_result(self, filename, data, header=None):
         """
         Write resulting noise - one number for each spectrum.
         """
-        full_path = sparky.user_sparky_directory + '/' + self.noise_path + filename
+        full_path = os.path.join(sparky.user_sparky_directory, self.noise_path, filename)
         with open(full_path, 'w') as f:
             if header:
                 if header[-1] != '\n':
@@ -180,7 +182,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
             for i in range(len(data)):
                 f.write('{:<20} {:20.3f}\n'.format(self.spectra_names[i], data[i]))
 
-        self.handling_output.insert('end', 'Noise levels written in {}\n'.format(self.noise_path + filename))
+        self.handling_output.insert('end', 'Noise levels written in {}\n'.format(os.path.join(self.noise_path, filename)))
         # self.handling_output.insert('end', 'Noise levels written in {}.\n'.format(full_path))
         pass
 
@@ -206,10 +208,10 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         noise_filtered = self.noise_heights.copy()
 
         if plot is True:
-            imgpath = sparky.user_sparky_directory + '/' + self.noise_path
+            imgpath = os.path.join(sparky.user_sparky_directory, self.noise_path)
             plt.figure(1)
             plt.boxplot(noise_filtered[:,:10])
-            plt.savefig(imgpath+'orig.png')
+            plt.savefig(os.path.join(imgpath, 'orig.png'))
             plt.clf()
 
         num_rounds = 0
@@ -243,7 +245,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         if plot is True:
             plt.figure(2)
             plt.boxplot(noise_result[:,:10])
-            plt.savefig(imgpath+'filtered.png')
+            plt.savefig(os.path.join(imgpath, 'filtered.png'))
             plt.clf()
 
         return np.std(noise_filtered, axis=0)
@@ -282,7 +284,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         plt.xlim([-x_lim, x_lim])
         plt.ylim([0, 3e-7])
         plt.legend()
-        plt.savefig(sparky.user_sparky_directory+'/'+self.noise_path+'hist.png')
+        plt.savefig(os.path.join(sparky.user_sparky_directory, self.noise_path, 'hist.png'))
         plt.clf()
 
     def noise(self):
@@ -330,4 +332,3 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         # writing_time = time.time()
         # self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - picking_time))
         self.handling_output.insert('end', 'Done\n')
-        return
