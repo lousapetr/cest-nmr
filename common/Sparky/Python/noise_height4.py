@@ -150,12 +150,13 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
                    fmt='%20.3f',
                    header=''.join('{:>20s}'.format(n) for n in self.spectra_names))
 
-        # self.handling_output.insert('end', 'All peak coordinates written in file {}.\n'.format(self.noise_path+'noise_coords.csv'))
-        # self.handling_output.insert('end', 'All peak heights written in file {}.\n'.format(self.noise_path+'noise_heights_full.csv'))
+        self.handling_output.insert('end', 'All peak coordinates written in file {}.\n'.format(self.noise_path+'noise_coords.csv'))
+        self.handling_output.insert('end', 'All peak heights written in file {}.\n'.format(self.noise_path+'noise_heights_full.csv'))
 
         # uncomment for full path writing
-        self.handling_output.insert('end', 'All peak coordinates written in file {}\n'.format(noise_dir+'noise_coords.csv'))
-        self.handling_output.insert('end', 'All peak heights written in file {}\n'.format(noise_dir+'noise_heights_full.csv'))
+        # self.handling_output.insert('end', 'All peak coordinates written in file {}\n'.format(noise_dir+'noise_coords.csv'))
+        # self.handling_output.insert('end', 'All peak heights written in file {}\n'.format(noise_dir+'noise_heights_full.csv'))
+        pass
 
     def _write_result(self, filename, data, header=None):
         """
@@ -190,28 +191,46 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
 
         Return numpy array `len(spectrum_list)` x 1
         """
+        self.handling_output.insert('end', 'Iterative sigma calculation starts.\n')
         noise_filtered = self.noise_heights.copy()
 
         imgpath = sparky.user_sparky_directory + '/' + self.noise_path
         plt.figure(1)
         plt.boxplot(noise_filtered[:,:10])
         plt.savefig(imgpath+'orig.png')
+
+        num_rounds = 0
+        orig_stddev = np.std(noise_filtered)
         while True:
             stddev = np.std(noise_filtered, axis=0)
             mask = (noise_filtered > max_sigma * stddev) | (noise_filtered < - max_sigma * stddev)
             noise_filtered[mask] = np.nan
             noise_filtered = np.ma.masked_invalid(noise_filtered)
-            self.handling_output.insert('end', '    {} values filtered out'.format(mask.sum()))
-            self.handling_output.insert('end', ', {} left.'.format(noise_filtered.count()))
-            self.handling_output.insert('end', ' Current average STD = {}\n'.format(noise_filtered.std()))
+            # self.handling_output.insert('end', '    {} values filtered out'.format(mask.sum()))
+            # self.handling_output.insert('end', ', {} left.'.format(noise_filtered.count()))
+            # self.handling_output.insert('end', ' Current average STD = {}\n'.format(noise_filtered.std()))
+            num_rounds += 1
             if not np.any(mask):  # no values were filtered
                 break
+
         noise_result = self.noise_heights.copy()
         noise_result[noise_filtered.mask] = np.nan
+
+        final_stddev = np.std(noise_filtered)
+        final_stddev_percent = 100.0 * final_stddev / orig_stddev
+        num_filtered = noise_filtered.mask.sum()
+        percent_filtered = 100.0 * num_filtered / self.noise_heights.size
+        self.handling_output.insert('end',
+            '    After {} rounds, {} values ({:.3f} %) was filtered out\n'.format(num_rounds, num_filtered, percent_filtered))
+        self.handling_output.insert('end',
+            '    Sigma dropped from {:.0f} to {:.0f} ({:.2f} %)\n'.format(orig_stddev, final_stddev, final_stddev_percent))
+
         plt.figure(2)
         plt.boxplot(noise_result[:,:10])
         plt.savefig(imgpath+'filtered.png')
-        return stddev
+        plt.close()
+
+        return np.std(noise_filtered, axis=0)
 
     def noise(self):
         # start_time = time.time()
@@ -256,6 +275,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         plt.xlim([-x_lim, x_lim])
         plt.ylim([0, 3e-7])
         plt.savefig(sparky.user_sparky_directory+'/'+self.noise_path+'hist.png')
+        plt.close()
 
         # writing_time = time.time()
         # self.handling_output.insert('end', 'The Peak Writing took {:.3f} seconds\n'.format(writing_time - picking_time))
