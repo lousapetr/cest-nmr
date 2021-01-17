@@ -95,7 +95,9 @@ In this section, we will use the process UCSF spectra, check them in Sparky and 
     - 'Iterative' - Iteratively calculate standard deviation and filter out peaks with amplitude larger than 6*sigma (such a height has probability around 1e-9 to exist under Gauss distribution).
     - 'Median abs.dev.' - _Median absolute deviation_, [wiki](https://en.wikipedia.org/wiki/Median_absolute_deviation) Calculate median of absolute values of deviations from median of original data. `MAD = median(abs(x - median(x)))`
 
-5. If you want to see the peak locations, hit `Show peaks`. Warning: After this, the peaks get real, rerun of the noise determination is not possible (new peaks will try to avoid all the previous noise peaks, leaving no space to put them).
+5. If you want to see the peak locations, hit `Show peaks`.
+    - Warning: After this, the peaks get real, rerun of the noise determination is not possible (new peaks will try to avoid all the previous noise peaks, leaving no space to put them).
+    - It's also possible to read the noise peaks back from the coordinates file located in `Sparky/Lists_noise/noise_coords.list`
 
 6. Close Sparky without saving (you do not want to save the lots of unassigned random peaks).
 

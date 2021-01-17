@@ -157,7 +157,7 @@ class NoiseDialog(tkutil.Dialog, tkutil.Stoppable):
         heights_file = 'noise_heights_full.csv'
         np.savetxt(fname=os.path.join(noise_dir, coords_file),
                    X=np.array(self.noise_peaklist),
-                   fmt='%10.3f')
+                   fmt='?-? %10.3f %10.3f')
 
         np.savetxt(fname=os.path.join(noise_dir, heights_file),
                    X=self.noise_heights,
