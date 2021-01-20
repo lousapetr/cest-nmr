@@ -5,12 +5,14 @@
 LIST_DIR="$PWD/Sparky/Lists"
 NOISE_FILE="$PWD/Sparky/Lists_noise/noise.dat"
 
-OUTPUT_NUM=$(basename $PWD | sed 's/^\([0-9]*\).*/\1/')  # extract experiment number, strip all non-numbers
+# OUTPUT_NUM=$(basename $PWD | sed 's/^\([0-9]*\).*/\1/')  # extract experiment number, strip all non-numbers
+OUTPUT_NUM=$(basename $PWD) # | sed 's/^\([0-9]*\).*/\1/')  # extract experiment number
 OUTPUT_PLOT_INTENSITIES="${OUTPUT_NUM}_plot_intensities.ps"
 OUTPUT_PLOT_RATIOS="${OUTPUT_NUM}_plot_ratios.ps"
 
 OLD_PWD="$PWD"
 cd $LIST_DIR
+
 GNUFILE_INTENSITIES="create_plot_intensities.gnuplot"
 GNUFILE_RATIOS="create_plot_ratios.gnuplot"
 
@@ -59,7 +61,7 @@ if [ -f "$NOISE_FILE" ]; then
             sed -i'.bk' -e '1s/[[:space:]]*Noise$//' \
                 -e '3,$s/[[:space:]]*[0-9.]*$//' -- $f
         fi
-        noise=$(awk -v filename=$(basename -- $f) '$1==filename {printf "%20f", $2}' "$NOISE_FILE")
+        noise=$(awk -v filename=$(basename -- $f) 'filename~$1 {printf "%20f", $2}' "$NOISE_FILE")
         # write noise to new column
         sed -i'' -e "1s/$/               Noise/" \
             -e "3,\$s/$/ ${noise}/" -- $f
@@ -82,6 +84,7 @@ do
     # echo $resnum
     filename_intensity="${resnum}_$res.intensity"
     filename_ratio="${resnum}_$res.ratio"
+    filename_ring="${resnum}_${res}.ring"
     # echo $filename_intensity $filename_ratio
 
     # extract corresponding lines from all *.list files
@@ -106,8 +109,8 @@ EOF
 ########
     
     # create ratios files and plot them
-    original_intensity=$(awk 'NR==1 {print $2}' $filename_intensity)
-    original_noise=$(awk 'NR==1 {print $3}' $filename_intensity)
+    original_intensity=$(awk '$1 ~ /000$/ {print $2}' $filename_intensity)
+    original_noise=$(awk '$1 ~ /000$/ {print $3}' $filename_intensity)
     # the relative error of the quotient (after division) equals to the sum of relative errors
     awk -v intensity=$original_intensity -v noise=$original_noise \
         'NR>1 {print $1, $2/intensity, $2/intensity * (noise/intensity + $3/$2)}' \
@@ -120,8 +123,13 @@ plot "$filename_ratio" $plot_mode pt 7 lc "blue" t "From file: $filename_ratio" 
 unset arrow 9
 
 EOF
+#########
+    
+    # create input files for RING NMR
+    join -j 1 -o 1.2,2.2,2.3 <(sort '../../freq2shift.txt') <(sort $filename_ratio) > $filename_ring
+
 ########
-done
+done # for res in $res_list
 
 echo
 
