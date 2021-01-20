@@ -9,6 +9,7 @@ shift () {
 }
 
 cd UCSF
+echo '' > ../freq2shift.txt
 # first_freq=$(head -2 ../fq3list | tail -1)
 # first_shift=$(echo "$(shift $first_freq) - 5" | bc -l)
 # ln -fs -- 1.ucsf "${first_shift}_ppm.ucsf"
@@ -16,9 +17,10 @@ cd UCSF
 for ((i = 1; i <= $(cat ../fq3list | wc -l); ++i))
 do
     freq=$(head -${i} ../fq3list | tail -1)
-    ppm=$(shift $freq)
+    ppm=$(printf "%.2f%03d" $(shift $freq) $i)  # creates shifts in form of XX.XX001, YY.YY002, necessary for later identification
     # echo -ne "$i $freq $ppm   \r"
-    new_name=$(printf "%.2f%03d_ppm.ucsf" $ppm $i)
+    new_name="${ppm}_ppm.ucsf"
+    echo "$ppm $freq " >> freq2shift.txt
     printf "%5d.ucsf -> %20s\r" $i $new_name
     ln -fs -- $i.ucsf "$new_name"
 done
