@@ -79,6 +79,8 @@ In this section, we will use the process UCSF spectra, check them in Sparky and 
 
 7. Save project (`js`) and continue by *Noise estimation* (or close Sparky (`qt`)).
 
+8. After noise is estimated, run script `plot_cest.sh`. You will get three files (`.intensity` with original intensities, `.ratio` with intensities normalized to the reference spectrum, and `.ring` in a format suitable for RING NMR) for each residuum, located in `Sparky/Lists/`. Moreover, you get plots for both original and normalized intensities named `...plot_intensities.ps` and `...plot_ratios.ps` with the name of current folder at the start. These are multipage documents with a plot for one residuum per page. You can convert the `.ps` file to PDF by command `ps2pdf`.
+
 ##### Noise estimation
 
 1. Start with the project opened in Sparky.
